@@ -1,11 +1,12 @@
 import cohere
+import os
 
 co = cohere.Client('wzDHE5Qd32AeLEVPuu38piTWBKIstAK83IuHfF9q')
 
 file = open('chatCodes.txt', 'a')
 file.close()
-file = open('chatCodes.txt', 'w')
-file.close()
+if not os.path.exists('chatHistory'):
+    os.makedirs('chatHistory')
 
 
 def deleteChat(chatKey):
@@ -21,7 +22,7 @@ def deleteChat(chatKey):
             if chatKey not in line:
                 # If it does not contain 'chatKey', write it back to the file
                 file.write(line)
-
+    file.close()
 
 def continueChat(chatKey, message):
     #ChatBot
@@ -31,7 +32,7 @@ def continueChat(chatKey, message):
         # perform web search before answering the question. You can also use your own custom connector.
         connectors=[{"id": "web-search"}],
     )
-    return(response.text)
+    return(response.text, chatKey)
 
 def newChat(message):
     response = co.chat(

@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext
 from tkinter import Menu
 import chatbot
+import json
 
 class ChatUI:
     def __init__(self, master):
@@ -22,7 +23,7 @@ class ChatUI:
         self.message_input.bind("<Return>", self.send_message)
 
         # Variable to store the selected chat's name
-        self.selected_chat = None
+        self.selected_chat = 'new chat'
 
 
         self.loadChats()
@@ -53,28 +54,70 @@ class ChatUI:
         # Bind selection event to channel list
         self.channel_list.bind("<Button-1>", self.select_chat)
 
+    def loadChatInfo(self, chatKey):
+        file_path = "chatHistory\\" + chatKey + ".txt"
+        file = open(file_path, 'r')
+        lines = file.readlines()  # Read all lines from the file
+        file.close()
 
+        for line in lines:
+            lineInfo = line.split('|')
+            message = lineInfo[1].strip()
+            self.display_message(lineInfo[0], message)
+        
+
+    def clear_chat_display(self):
+        self.message_display.configure(state=tk.NORMAL)
+        self.message_display.delete('1.0', tk.END)
+        self.message_display.configure(state=tk.DISABLED)
+    
     def send_message(self, event):
         message = self.message_input.get()
-        if self.selected_chat:
-            print("Sending message to:", self.selected_chat)
-        else:
-            print("No chat selected")
             
-        self.display_message("You", message, "green")
+        self.display_message("You", message)
         # For demo purposes, let's simulate a bot response
         if(self.selected_chat == "new chat"):
             response = chatbot.newChat(message)
-            self.display_message("Connor Bot", response[0], "blue")
+            self.display_message("Connor Bot", response[0])
+            self.message_input.delete(0, tk.END)
             self.selected_chat = response[1]
-            print(self.selected_chat)
             self.loadChats()
+            
+            file_name = "chatHistory\\" + response[1] + '.txt'
+            file = open(file_name, 'a')
+            file.close()
+            file = open(file_name, 'w')
+            file.write("You|"+message+"\n")
+            file.write("Connor Bot|"+response[0])
+            file.close()
         else:
-            self.display_message("Bot", chatbot.continueChat(self.selected_chat, message), "blue")
-        self.message_input.delete(0, tk.END)
+            response = chatbot.continueChat(self.selected_chat, message)
+            chatKey = response[1]
+            self.display_message("Connor Bot", response[0])
+            self.message_input.delete(0, tk.END)
+            
 
 
-    def display_message(self, sender, message, color):
+            file_name = "chatHistory\\" + chatKey + '.txt'
+            with open(file_name, 'r') as file:
+                lines = file.readlines()
+            with open(file_name, 'w') as file:
+                # Iterate over each line
+                for line in lines:
+                        file.write(line)
+                file.write("You|"+message+"\n")
+                file.write("Connor Bot|"+response[0])
+            file.close()
+
+            
+        
+
+    def display_message(self, sender, message):
+        color = None
+        if(sender == "Connor Bot"):
+            color = "blue"
+        else:
+            color = "green"
         self.message_display.configure(state=tk.NORMAL)
         self.message_display.insert(tk.END, f"{sender}: {message}\n", color)
         self.message_display.configure(state=tk.DISABLED)
@@ -102,7 +145,9 @@ class ChatUI:
         index = self.channel_list.nearest(event.y)
         # Get the text of the selected item
         self.selected_chat = self.channels[index]
-        print("Selected chat:", self.selected_chat)
+        self.clear_chat_display()
+        if(self.selected_chat != "new chat"):
+            self.loadChatInfo(self.selected_chat)
 
     
 
